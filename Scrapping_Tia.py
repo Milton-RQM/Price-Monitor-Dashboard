@@ -9,7 +9,7 @@ from itemloaders.processors import MapCompose
 from datetime import datetime
 import os
 
-class Farmacia(Item):
+class Productos_Tia(Item):
 
     Producto = Field()
     Nombre = Field()
@@ -19,9 +19,9 @@ class Farmacia(Item):
     LinkPrincipal = Field()
     ValorScrapy = Field()
 
-class FybecaSpider(CrawlSpider):
+class TiaSpider(CrawlSpider):
 
-    name = 'Fybeca'
+    name = 'Tia'
     custom_settings = {
         'USER_AGENT': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
         'CLOSESPIDER_PAGECOUNT': 10,
@@ -31,20 +31,20 @@ class FybecaSpider(CrawlSpider):
 
     }
 
-    allowed_domains = ['fybeca.com']
+    allowed_domains = ['tia.com.ec']
     # Define un diccionario de grupos de categorías
 
     category_groups = {
-        'medicinas': [
-            'digestivo',
-            'respiratorio',
-            'tiroides'  # Agrega las demás categorías aquí
+        'lacteos': [
+            'huevos',
+            'quesos',
+            'crema-de-leche'  # Agrega las demás categorías aquí
         ],
-        'ofertas': [
-            'precios-inmejorables'  # Agrega las demás categorías aquí
+        'comestibles': [
+            'aceites-y-vinagres'  # Agrega las demás categorías aquí
         ],
-        'bienestar': [
-            'multivitaminicos'  # Agrega las demás categorías aquí
+        'aguas-y-bebidas': [
+            'bebidas-gaseosas-y-maltas'  # Agrega las demás categorías aquí
         ]
     }
 
@@ -52,7 +52,7 @@ class FybecaSpider(CrawlSpider):
 
     def start_requests(self):
 
-        base_url = 'https://www.fybeca.com/'
+        base_url = 'https://www.tia.com.ec/supermercado/'
         for group, categories in self.category_groups.items():
             for category in categories:
                 url = f'{base_url}{group}/{category}/'
@@ -62,7 +62,7 @@ class FybecaSpider(CrawlSpider):
                     'link_principal': url,
                     'fecha_consulta': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
-                yield scrapy.Request(url=url, callback=self.parse_farmacia, meta=meta)
+                yield scrapy.Request(url=url, callback=self.parse_tia, meta=meta)
 
     rules = (
         Rule(
@@ -70,7 +70,7 @@ class FybecaSpider(CrawlSpider):
                 allow=r'start=',
                 tags=('a', 'button'),
                 attrs=('href', 'data-url')
-            ), follow=True, callback='parse_farmacia'),
+            ), follow=True, callback='parse_tia'),
     )
 
     def quitarSimboloDolar(self, texto):
@@ -78,12 +78,12 @@ class FybecaSpider(CrawlSpider):
         nuevoTexto = nuevoTexto.replace('\n', '').replace('\r', '').replace('\t', '')
         return nuevoTexto
 
-    def parse_farmacia(self, response):
+    def parse_tia(self, response):
         sel = Selector(response)
         productos = sel.xpath('//div[@class="col-12 col-lg-4"]')
 
         for producto in productos:
-            item = ItemLoader(Farmacia(), producto)
+            item = ItemLoader(Productos_Tia(), producto)
             item.add_xpath('Producto', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]/a[@class="product-brand text-uppercase m-0"]/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
             item.add_xpath('Nombre', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]//div[@class="pdp-link"]/a/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
             item.add_xpath('Precio', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]//div[@class="large-price d-flex "]/span/text()', MapCompose(self.quitarSimboloDolar))
