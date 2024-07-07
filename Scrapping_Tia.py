@@ -67,7 +67,7 @@ class TiaSpider(CrawlSpider):
     rules = (
         Rule(
             LinkExtractor(
-                allow=r'start=',
+                allow=r'p=',
                 tags=('a', 'button'),
                 attrs=('href', 'data-url')
             ), follow=True, callback='parse_tia'),
@@ -80,20 +80,20 @@ class TiaSpider(CrawlSpider):
 
     def parse_tia(self, response):
         sel = Selector(response)
-        productos = sel.xpath('//div[@class="col-12 col-lg-4"]')
+        productos = sel.xpath('//div[@class="column main"]//div[@class="products wrapper grid products-grid"]')
 
         for producto in productos:
             item = ItemLoader(Productos_Tia(), producto)
-            item.add_xpath('Producto', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]/a[@class="product-brand text-uppercase m-0"]/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
-            item.add_xpath('Nombre', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]//div[@class="pdp-link"]/a/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
-            item.add_xpath('Precio', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]//div[@class="large-price d-flex "]/span/text()', MapCompose(self.quitarSimboloDolar))
+            #item.add_xpath('Producto', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]/a[@class="product-brand text-uppercase m-0"]/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
+            #item.add_xpath('Nombre', './/div[@class="tile-body px-3 pt-3 pb-0 d-flex flex-column pb-2"]//div[@class="pdp-link"]/a/text()', MapCompose(lambda i: i.replace('\n', '').replace('\r', '')))
+            item.add_xpath('Precio', './/li[@class="item product product-item"]//div[@class="price-box-normal price-box price-final_price"]//span[@class="price"]/text()', MapCompose(self.quitarSimboloDolar))
             item.add_value('FechaConsulta', response.meta['fecha_consulta'])
             item.add_value('Categoria', response.meta['categoria'])
             item.add_value('LinkPrincipal', response.meta['link_principal'])
-            item.add_value('ValorScrapy', 'Fybeca')
+            item.add_value('ValorScrapy', 'Tia')
             yield item.load_item()
 
-filename = f"data_{datetime.now().strftime('%Y-%m-%d')}.csv"
+filename = f"data_tia_{datetime.now().strftime('%Y-%m-%d')}.csv"
 
 if os.path.exists(filename):
     os.remove(filename)
@@ -107,6 +107,6 @@ process = CrawlerProcess({
 })
 
 print("Iniciando proceso")
-process.crawl(FybecaSpider)
+process.crawl(TiaSpider)
 process.start()
 
